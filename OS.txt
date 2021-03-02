@@ -1,0 +1,119 @@
+ORG 1000H
+GOTO MAIN
+NOP
+NOP
+NOP
+
+ORG 1080H
+
+MAIN:
+	CALL	Init					;开机初始化
+	
+START:
+	CALL 	Save_Data
+;	CALL 	Read_Data				;CALL Data1
+	GOTO	START					;
+;====================================================================
+Init:
+	CALL	Init_Data
+	LDWR	R30,0000H
+	LDWR	R40,0000H
+	RET
+;====================================================================
+Init_Data:
+	LDWR	R50,3F00H
+	LDWR	R52,3F00H
+LOOP3:
+	INC		R50,0,1
+	INC		R52,0,1
+	
+	LDWR	R0,0008H
+	LDWR	R10,5a00H
+	MOV		R50,R12,2
+	MOV		R52,R14,2	
+	LDWR	R16,0074H
+	MOVXR	R10,0,4
+LOOP4:
+	LDWR	R0,0008H
+	MOVXR	R10,1,1
+	IJNE	R10,0,LOOP4				;保存结束	
+	IJNE	R50,4EH,LOOP3			;初始化结束
+	RET
+;============================================
+Save_Data:
+	LDWR	R0,2006H				;RO,R1用于存放变量地址vp
+	MOVXR	R10,1,1					;将数据存到R10,R11(一个寄存器存一个字节)第二个数为0=寄存器到变量 1=变量到寄存器
+	IJNE	R10,00H,Save_Data_RET
+	IJNE	R11,01H,Save_Data_RET	;判断数据是多少相同继续执行，不同就跳转到Save_Data_RET
+;5a a5 0b 82 0008 a5 004000 3000 0074
+	LDWR	R0,2003H
+	MOVXR	R30,1,1					;数据保存的地址存入r30
+	MOVXR	R32,1,1
+	MOVXR	R34,1,1
+	LDWR	R0,0008H
+	LDWR	R10,a500H
+	MOV		R30,R12,2				
+	LDWR	R14,3000H	
+	LDWR	R16,0074H
+	MOVXR	R10,0,4
+LOOP1:
+	LDWR	R0,0008H
+	MOVXR	R10,1,1
+	IJNE	R10,0,LOOP1				;保存结束
+	
+	LDWR	R0,2006H				;按键动作抬起，清空键值避免数据库频繁写，点击了按键返回才进行保存操作(1001H写自己按键的地址)
+	LDWR	R10,0
+	MOVXR	R10,0,1
+	
+	LDWR	R0,0008H
+	LDWR	R10,5a00H
+	MOV		R32,R12,2				
+	MOV		R34,R14,2
+	LDWR	R16,0074H
+	MOVXR	R10,0,4
+LOOP5:
+	LDWR	R0,0008H
+	MOVXR	R10,1,1
+	IJNE	R10,0,LOOP5				;显示完成
+	RET
+Save_Data_RET:
+	RET
+	
+;========================================
+
+Read_Data:
+	LDWR	R0,2004H				;RO,R1用于存放变量地址vp
+	MOVXR	R10,1,1					;将数据存到R10,R11(一个寄存器存一个字节)第二个数为0=寄存器到变量 1=变量到寄存器
+	TESTS	R10,R40,2
+	IJNE	R0,0,Change
+	GOTO	Read_Data1
+Change:
+	MOV		R40,R0,2
+	LDWR	R2,3100H
+	MOVXX	74H
+Read_Data1:	
+	LDWR	R0,2003H				;RO,R1用于存放变量地址vp
+	MOVXR	R10,1,1					;将数据存到R10,R11(一个寄存器存一个字节)第二个数为0=寄存器到变量 1=变量到寄存器
+	TESTS	R10,R30,2
+	IJNE	R0,0,Change1
+	GOTO	Read_Data_RET
+Change1:
+	MOV		R30,R0,2
+	LDWR	R2,3000H
+	MOVXX	74H
+Read_Data_RET:
+	RET
+;==========================================================
+Read_Data_p1:
+	LDWR	R0,0008H
+	LDWR	R10,5a00H
+	MOV		R30,R12,2				
+	LDWR	R14,3000H
+	LDWR	R16,0074H
+	MOVXR	R10,0,4
+LOOP6:
+	LDWR	R0,0008H
+	MOVXR	R10,1,1
+	IJNE	R10,0,LOOP6				;显示完成
+	RET
+	
